@@ -1,4 +1,4 @@
-package com.ap.watchtogive.ui.screens
+package com.ap.watchtogive.ui.screens.stats
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -7,17 +7,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ap.watchtogive.model.Charity
-import com.ap.watchtogive.ui.screens.CharitiesScreenState
-import com.ap.watchtogive.ui.screens.CharitiesViewModel
-import javax.inject.Inject
+import com.ap.watchtogive.ui.screens.select.SelectViewModel
 
 @Composable
-fun CharitySelectScreen(
-    viewModel: CharitiesViewModel = hiltViewModel()
+fun StatsScreen(
+    viewModel: SelectViewModel = hiltViewModel()
 ) {
 
     val uiState by viewModel.uiState.collectAsState()

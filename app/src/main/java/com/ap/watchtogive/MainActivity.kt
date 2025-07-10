@@ -41,3 +41,5 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+//Todo: Next is make a nav bar like on figma.
+

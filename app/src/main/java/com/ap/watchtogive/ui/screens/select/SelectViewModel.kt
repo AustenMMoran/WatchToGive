@@ -1,7 +1,5 @@
-package com.ap.watchtogive.ui.screens
+package com.ap.watchtogive.ui.screens.select
 
-import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ap.watchtogive.data.repository.CharitiesRepository
@@ -20,13 +18,13 @@ import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
-class CharitiesViewModel @Inject constructor(
+class SelectViewModel @Inject constructor(
     private val repository: CharitiesRepository,
     private val locationRepository: LocationRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(CharitiesScreenState(isLoading = true))
-    val uiState: StateFlow<CharitiesScreenState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(SelectScreenState(isLoading = true))
+    val uiState: StateFlow<SelectScreenState> = _uiState.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -35,14 +33,14 @@ class CharitiesViewModel @Inject constructor(
                 .flatMapLatest { location ->
                     repository.getCharitiesByLocation(location)
                         .onStart {
-                            _uiState.value = CharitiesScreenState(isLoading = true)
+                            _uiState.value = SelectScreenState(isLoading = true)
                         }
                 }
                 .catch { e ->
-                    _uiState.value = CharitiesScreenState(error = e.message ?: "Unknown error")
+                    _uiState.value = SelectScreenState(error = e.message ?: "Unknown error")
                 }
                 .collect { charities ->
-                    _uiState.value = CharitiesScreenState(isLoading = false, charities = charities)
+                    _uiState.value = SelectScreenState(isLoading = false, charities = charities)
                 }
         }
     }

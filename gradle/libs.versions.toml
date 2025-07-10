@@ -13,6 +13,7 @@ google-services = "4.4.3"
 firebaseFirestoreKtx = "25.1.4"
 androidx-datastore = "1.1.7"
 navigation = "2.9.1"
+spotless = "6.20.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -44,3 +45,6 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 kotlin-kapt = { id = "org.jetbrains.kotlin.kapt", version.ref = "kotlin" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 google-services = { id = "com.google.gms.google-services", version.ref = "google-services" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+
+

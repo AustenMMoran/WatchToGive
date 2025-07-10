@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.kotlin.kapt)
     alias(libs.plugins.hilt)
     alias(libs.plugins.google.services)
+    alias(libs.plugins.spotless)
 }
 
 android {
@@ -51,6 +52,18 @@ android {
             jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
             optIn.add("kotlin.RequiresOptIn")
         }
+    }
+}
+
+spotless {
+    kotlin {
+        target("**/*.kt")
+        ktlint()
+    }
+
+    kotlinGradle {
+        target("**/*.gradle.kts")
+        ktlint()
     }
 }
 
