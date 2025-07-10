@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "969822409904",
+    "firebase_url": "https://themillionmovement-cf1cc-default-rtdb.firebaseio.com",
+    "project_id": "themillionmovement-cf1cc",
+    "storage_bucket": "themillionmovement-cf1cc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:969822409904:android:fea1609df3ae35c73ad775",
+        "android_client_info": {
+          "package_name": "com.ap.watchtogive"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "969822409904-osrqgqm9nts1qnshhibcktpdkhupmar2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDeFGCitpahu2rB2ztl1HgoUTaS10onswc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "969822409904-osrqgqm9nts1qnshhibcktpdkhupmar2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
