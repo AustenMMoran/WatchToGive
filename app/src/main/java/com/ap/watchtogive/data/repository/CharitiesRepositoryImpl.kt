@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import javax.inject.Inject
 
 class CharitiesRepositoryImpl @Inject constructor(
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
 ) : CharitiesRepository {
     override fun getCharitiesByLocation(location: String): Flow<List<Charity>> = callbackFlow {
         val collectionName = "charities_$location"
@@ -36,4 +36,3 @@ class CharitiesRepositoryImpl @Inject constructor(
         }
     }
 }
-

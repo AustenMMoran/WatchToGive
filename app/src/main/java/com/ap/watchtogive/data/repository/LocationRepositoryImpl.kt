@@ -14,7 +14,7 @@ private val Context.dataStore by preferencesDataStore(name = "user_prefs")
 
 @Singleton
 class LocationRepositoryImpl @Inject constructor(
-    @param:ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context,
 ) : LocationRepository {
 
     companion object {
@@ -22,9 +22,9 @@ class LocationRepositoryImpl @Inject constructor(
     }
 
     override fun getLocation(): Flow<String?> = context.dataStore.data.map {
-        prefs -> prefs[LOCATION_KEY]
+            prefs ->
+        prefs[LOCATION_KEY]
     }
-
 
     override suspend fun setLocation(newLocation: String) {
         context.dataStore.edit { prefs ->

@@ -1,5 +1,3 @@
-import com.android.utils.jvmArchitecture
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -29,7 +27,7 @@ android {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
         }
     }
@@ -86,13 +84,12 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    //Hilt
+    // Hilt
     implementation(libs.hilt.core)
     implementation(libs.hilt.navigation.compose)
     kapt(libs.hilt.compiler)
 
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.navigation.compose)
-
-
+    testImplementation(kotlin("test"))
 }

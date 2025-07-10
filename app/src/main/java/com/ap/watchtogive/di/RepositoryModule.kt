@@ -16,12 +16,12 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindCharitiesRepository(
-        impl: CharitiesRepositoryImpl
+        impl: CharitiesRepositoryImpl,
     ): CharitiesRepository
 
     @Binds
     @Singleton
     abstract fun bindLocationRepository(
-        impl: LocationRepositoryImpl
+        impl: LocationRepositoryImpl,
     ): LocationRepository
 }

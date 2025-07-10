@@ -20,7 +20,7 @@ import javax.inject.Inject
 @HiltViewModel
 class SelectViewModel @Inject constructor(
     private val repository: CharitiesRepository,
-    private val locationRepository: LocationRepository
+    private val locationRepository: LocationRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SelectScreenState(isLoading = true))
@@ -29,7 +29,7 @@ class SelectViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             locationRepository.getLocation()
-                .map { it ?: "gb" }  // default if null
+                .map { it ?: "gb" } // default if null
                 .flatMapLatest { location ->
                     repository.getCharitiesByLocation(location)
                         .onStart {
@@ -44,9 +44,4 @@ class SelectViewModel @Inject constructor(
                 }
         }
     }
-
-
-
-
 }
-

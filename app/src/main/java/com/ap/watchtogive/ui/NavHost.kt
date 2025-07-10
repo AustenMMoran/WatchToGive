@@ -19,7 +19,7 @@ sealed class Screen(val route: String) {
 fun NavHost(
     navController: NavHostController,
     startDestination: String = Screen.CharitySelect.route,
-    modifier: Modifier
+    modifier: Modifier,
 ) {
     NavHost(navController = navController, startDestination = startDestination) {
         composable(Screen.CharityStats.route) {
