@@ -1,4 +1,4 @@
-package com.ap.watchtogive.ui
+package com.ap.watchtogive.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -18,7 +18,7 @@ sealed class Screen(val route: String) {
 @Composable
 fun NavHost(
     navController: NavHostController,
-    startDestination: String = Screen.CharitySelect.route,
+    startDestination: String,
     modifier: Modifier,
 ) {
     NavHost(navController = navController, startDestination = startDestination) {

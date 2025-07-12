@@ -25,15 +25,17 @@ fun StatsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    when {
-        uiState.isLoading -> LoadingView()
-        uiState.error != null -> ErrorView(uiState.error!!)
-        else -> CharityList(charities = uiState.charities)
-    }
+//    when {
+//        uiState.isLoading -> LoadingView()
+//        uiState.error != null -> ErrorView(uiState.error!!)
+//        else -> CharityList(charities = uiState.charities)
+//    }
+
+    PlaceHolder()
 }
 
 @Composable
-fun CharityList(charities: List<Charity>) {
+private fun CharityList(charities: List<Charity>) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -52,15 +54,22 @@ fun CharityList(charities: List<Charity>) {
 }
 
 @Composable
-fun LoadingView() {
+private fun LoadingView() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         CircularProgressIndicator()
     }
 }
 
 @Composable
-fun ErrorView(message: String) {
+private fun ErrorView(message: String) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(text = "Error: $message", color = MaterialTheme.colorScheme.error)
+    }
+}
+
+@Composable
+private fun PlaceHolder() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(text = "STATS SCREEN", color = MaterialTheme.colorScheme.error)
     }
 }

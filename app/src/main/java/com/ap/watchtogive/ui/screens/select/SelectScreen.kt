@@ -32,7 +32,7 @@ fun SelectScreen(
 }
 
 @Composable
-fun CharityList(charities: List<Charity>) {
+private fun CharityList(charities: List<Charity>) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -51,14 +51,14 @@ fun CharityList(charities: List<Charity>) {
 }
 
 @Composable
-fun LoadingView() {
+private fun LoadingView() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         CircularProgressIndicator()
     }
 }
 
 @Composable
-fun ErrorView(message: String) {
+private fun ErrorView(message: String) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(text = "Error: $message", color = MaterialTheme.colorScheme.error)
     }
