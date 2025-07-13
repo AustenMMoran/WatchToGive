@@ -1,4 +1,6 @@
 package com.ap.watchtogive.di
+import com.ap.watchtogive.data.repository.AdsRepository
+import com.ap.watchtogive.data.repository.AdsRepositoryImpl
 import com.ap.watchtogive.data.repository.CharitiesRepository
 import com.ap.watchtogive.data.repository.CharitiesRepositoryImpl
 import com.ap.watchtogive.data.repository.LocationRepository
@@ -12,16 +14,15 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
+    @Binds
+    @Singleton
+    abstract fun bindCharitiesRepository(impl: CharitiesRepositoryImpl): CharitiesRepository
 
     @Binds
     @Singleton
-    abstract fun bindCharitiesRepository(
-        impl: CharitiesRepositoryImpl,
-    ): CharitiesRepository
+    abstract fun bindLocationRepository(impl: LocationRepositoryImpl): LocationRepository
 
     @Binds
     @Singleton
-    abstract fun bindLocationRepository(
-        impl: LocationRepositoryImpl,
-    ): LocationRepository
+    abstract fun bindAdsRepository(impl: AdsRepositoryImpl): AdsRepository
 }

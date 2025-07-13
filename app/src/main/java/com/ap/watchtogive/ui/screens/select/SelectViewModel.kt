@@ -18,30 +18,31 @@ import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
-class SelectViewModel @Inject constructor(
-    private val repository: CharitiesRepository,
-    private val locationRepository: LocationRepository,
-) : ViewModel() {
+class SelectViewModel
+    @Inject
+    constructor(
+        private val repository: CharitiesRepository,
+        private val locationRepository: LocationRepository,
+    ) : ViewModel() {
+        private val _uiState = MutableStateFlow(SelectScreenState(isLoading = true))
+        val uiState: StateFlow<SelectScreenState> = _uiState.asStateFlow()
 
-    private val _uiState = MutableStateFlow(SelectScreenState(isLoading = true))
-    val uiState: StateFlow<SelectScreenState> = _uiState.asStateFlow()
-
-    init {
-        viewModelScope.launch {
-            locationRepository.getLocation()
-                .map { it ?: "gb" } // default if null
-                .flatMapLatest { location ->
-                    repository.getCharitiesByLocation(location)
-                        .onStart {
-                            _uiState.value = SelectScreenState(isLoading = true)
-                        }
-                }
-                .catch { e ->
-                    _uiState.value = SelectScreenState(error = e.message ?: "Unknown error")
-                }
-                .collect { charities ->
-                    _uiState.value = SelectScreenState(isLoading = false, charities = charities)
-                }
+        init {
+            viewModelScope.launch {
+                locationRepository
+                    .getLocation()
+                    .map { it ?: "gb" } // default if null
+                    .flatMapLatest { location ->
+                        repository
+                            .getCharitiesByLocation(location)
+                            .onStart {
+                                _uiState.value = SelectScreenState(isLoading = true)
+                            }
+                    }.catch { e ->
+                        _uiState.value = SelectScreenState(error = e.message ?: "Unknown error")
+                    }.collect { charities ->
+                        _uiState.value = SelectScreenState(isLoading = false, charities = charities)
+                    }
+            }
         }
     }
-}

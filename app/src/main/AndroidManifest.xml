@@ -14,6 +14,15 @@
         android:roundIcon="@mipmap/ic_icon"
         android:supportsRtl="true"
         android:theme="@style/Theme.WatchToGive">
+
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3940256099942544~3347511713"/>
+
+        <!--
+            Real id: ca-app-pub-7049640721055375~2167672729
+        -->
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

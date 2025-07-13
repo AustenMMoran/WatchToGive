@@ -89,7 +89,14 @@ dependencies {
     implementation(libs.hilt.navigation.compose)
     kapt(libs.hilt.compiler)
 
+    // Datastore
     implementation(libs.androidx.datastore.preferences)
+
+    // Navigation
     implementation(libs.navigation.compose)
     testImplementation(kotlin("test"))
+
+    // Ads
+    implementation(libs.play.services.ads)
+
 }
