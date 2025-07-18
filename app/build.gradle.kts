@@ -99,4 +99,7 @@ dependencies {
     // Ads
     implementation(libs.play.services.ads)
 
+    // Firebase Auth
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
 }

@@ -8,36 +8,35 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import javax.inject.Inject
 
-class CharitiesRepositoryImpl
-    @Inject
-    constructor(
-        private val firestore: FirebaseFirestore,
-    ) : CharitiesRepository {
-        override fun getCharitiesByLocation(location: String): Flow<List<Charity>> =
-            callbackFlow {
-                val collectionName = "charities_$location"
+class CharitiesRepositoryImpl @Inject constructor(
+    private val firestore: FirebaseFirestore
+) : CharitiesRepository {
 
-                val listenerRegistration: ListenerRegistration =
-                    firestore
-                        .collection(collectionName)
-                        .addSnapshotListener { snapshot, error ->
-                            if (error != null) {
-                                close(error) // Close flow with error
-                                return@addSnapshotListener
-                            }
-                            if (snapshot != null && !snapshot.isEmpty) {
-                                val charities =
-                                    snapshot.documents.mapNotNull { doc ->
-                                        doc.toObject(Charity::class.java)
-                                    }
-                                trySend(charities).isSuccess
-                            } else {
-                                trySend(emptyList()).isSuccess
-                            }
+    override fun getCharitiesByLocation(location: String): Flow<List<Charity>> =
+        callbackFlow {
+            val collectionName = "charities_$location"
+
+            val listenerRegistration: ListenerRegistration =
+                firestore
+                    .collection(collectionName)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            close(error) // Close flow with error
+                            return@addSnapshotListener
                         }
+                        if (snapshot != null && !snapshot.isEmpty) {
+                            val charities =
+                                snapshot.documents.mapNotNull { doc ->
+                                    doc.toObject(Charity::class.java)
+                                }
+                            trySend(charities).isSuccess
+                        } else {
+                            trySend(emptyList()).isSuccess
+                        }
+                    }
 
-                awaitClose {
-                    listenerRegistration.remove()
-                }
+            awaitClose {
+                listenerRegistration.remove()
             }
-    }
+        }
+}

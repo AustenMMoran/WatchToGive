@@ -24,11 +24,6 @@ fun SelectScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    when {
-        uiState.isLoading -> LoadingView()
-        uiState.error != null -> ErrorView(uiState.error!!)
-        else -> CharityList(charities = uiState.charities)
-    }
 }
 
 @Composable

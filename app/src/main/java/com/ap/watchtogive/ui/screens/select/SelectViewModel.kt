@@ -24,24 +24,26 @@ class SelectViewModel
         private val repository: CharitiesRepository,
         private val locationRepository: LocationRepository,
     ) : ViewModel() {
-        private val _uiState = MutableStateFlow(SelectScreenState(isLoading = true))
-        val uiState: StateFlow<SelectScreenState> = _uiState.asStateFlow()
+
+    private val _uiState = MutableStateFlow<SelectScreenState>(SelectScreenState.Loading)
+    val uiState: StateFlow<SelectScreenState> = _uiState.asStateFlow()
+
 
         init {
             viewModelScope.launch {
                 locationRepository
                     .getLocation()
-                    .map { it ?: "gb" } // default if null
+                    .map { it ?: "gb" }
                     .flatMapLatest { location ->
                         repository
                             .getCharitiesByLocation(location)
                             .onStart {
-                                _uiState.value = SelectScreenState(isLoading = true)
+                                _uiState.value = SelectScreenState.Loading
                             }
                     }.catch { e ->
-                        _uiState.value = SelectScreenState(error = e.message ?: "Unknown error")
+                        _uiState.value = SelectScreenState.Error(message = e.message ?: "Unknown error")
                     }.collect { charities ->
-                        _uiState.value = SelectScreenState(isLoading = false, charities = charities)
+                        _uiState.value = SelectScreenState.Success(charities = charities)
                     }
             }
         }

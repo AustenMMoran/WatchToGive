@@ -2,8 +2,15 @@ package com.ap.watchtogive.ui.screens.select
 
 import com.ap.watchtogive.model.Charity
 
-data class SelectScreenState(
-    val isLoading: Boolean = false,
-    val charities: List<Charity> = emptyList(),
-    val error: String? = null,
-)
+sealed class SelectScreenState {
+    object Loading : SelectScreenState()
+
+    data class Success(
+        val charities: List<Charity>
+    ) : SelectScreenState()
+
+    data class Error(
+        val message: String
+    ) : SelectScreenState()
+}
+

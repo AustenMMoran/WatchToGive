@@ -6,6 +6,10 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ap.watchtogive.data.repository.AdsRepository
+import com.ap.watchtogive.data.repository.AuthRepository
+import com.ap.watchtogive.data.repository.UserRepository
+import com.ap.watchtogive.model.AuthState
+import com.ap.watchtogive.ui.screens.stats.StatsScreenState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,12 +22,15 @@ class WatchScreenViewModel
     @Inject
     constructor(
         private val adsRepository: AdsRepository,
+        private val authRepository: AuthRepository,
+        private val userRepository: UserRepository
     ) : ViewModel() {
         // Todo: Implement UI screen state with datastore saving the user's progress? Honestly probs better firebase with auth (ps need an authscreen state i guess)
         private val _uiState = MutableStateFlow(WatchScreenState())
-        val uiState: StateFlow<WatchScreenState> = _uiState.asStateFlow()
+        val  uiState: StateFlow<WatchScreenState> = _uiState.asStateFlow()
 
-        // todo: remember to set loadstate.error -> loadadd()
+
+    // todo: remember to set loadstate.error -> loadadd()
         init {
             adsRepository.loadAd()
             viewModelScope.launch {
@@ -31,24 +38,44 @@ class WatchScreenViewModel
                     _uiState.value = _uiState.value.copy(adLoadState = adState)
                 }
             }
+
         }
 
         fun showAd(
             activity: Activity?,
-            onAdFinished: () -> Unit,
         ) {
             if (activity != null) {
                 adsRepository.showAd(
                     activity = activity,
                     onAdFinished = {
                         adsRepository.loadAd()
-                        onAdFinished()
+                        updateUserStatistics()
                     },
                 )
             } else {
                 Log.e(TAG, "showAd: Null Activity")
             }
         }
+
+    fun updateUserStatistics() {
+        val currentAuthState = authRepository.authState.value
+        when (currentAuthState) {
+            is AuthState.LoggedInAnon -> {
+                viewModelScope.launch {
+                    userRepository.incrementAdWatchCountAnon()
+                }
+            }
+            is AuthState.LoggedIn -> {
+                viewModelScope.launch {
+                    userRepository.incrementAdWatchCount()
+                }
+            }
+            else -> {
+                Log.e(TAG, "updateUserStatistics: No account available", )
+            }
+        }
+    }
+
 
         fun isAdReady(): Boolean = adsRepository.isAdAvailable()
     }

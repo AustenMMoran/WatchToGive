@@ -34,8 +34,7 @@ fun WatchScreen(
 
     Box(
         modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF2F2F2F)), // Dark background
+            .fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
 
@@ -43,7 +42,7 @@ fun WatchScreen(
             modifier = Modifier
                 .background(playButtonBackground),
             onClick = {
-                watchViewModel.showAd(activity = activity, onAdFinished = {})
+                watchViewModel.showAd(activity = activity)
             }
         ) {
             Icon(
