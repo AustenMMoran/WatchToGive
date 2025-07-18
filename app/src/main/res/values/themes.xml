@@ -2,4 +2,14 @@
 <resources>
 
     <style name="Theme.WatchToGive" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="FirebaseAuthTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Make the background solid to avoid dim -->
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowBackground">@color/white</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+
 </resources>

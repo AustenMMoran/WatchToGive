@@ -15,7 +15,15 @@
       },
       "oauth_client": [
         {
-          "client_id": "969822409904-osrqgqm9nts1qnshhibcktpdkhupmar2.apps.googleusercontent.com",
+          "client_id": "969822409904-k7c32l6dc50ig5lu3s09i9eg7mo0ck3h.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ap.watchtogive",
+            "certificate_hash": "f6ab273ac68179047689689bb51f0ae0d95310e9"
+          }
+        },
+        {
+          "client_id": "969822409904-cfh7nb31b3viksfqu88shbmpnp3shvfu.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -28,7 +36,7 @@
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "969822409904-osrqgqm9nts1qnshhibcktpdkhupmar2.apps.googleusercontent.com",
+              "client_id": "969822409904-cfh7nb31b3viksfqu88shbmpnp3shvfu.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

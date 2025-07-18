@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.ap.watchtogive.data.repository.AuthRepository
 import com.ap.watchtogive.data.repository.UserRepository
 import com.ap.watchtogive.model.AuthState
+import com.google.firebase.auth.GoogleAuthProvider
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -30,8 +31,6 @@ class StatsViewModel @Inject constructor(
     private var statsJob: Job? = null
 
     init {
-        Log.d("lollipop", "StatVM init")
-
         viewModelScope.launch {
             authRepository.authState.collect { authState ->
                 when (authState) {
@@ -55,20 +54,21 @@ class StatsViewModel @Inject constructor(
         }
     }
 
+    val currentUid: String?
+        get() = when (val state = authRepository.authState.value) {
+            is AuthState.LoggedIn -> state.user?.uid
+            is AuthState.LoggedInAnon -> state.user?.uid
+            else -> null
+        }
 
+    fun linkAccount(){
 
-    fun fetchStats(){
-        //Todo: get extensive data
+        val credential = GoogleAuthProvider.getCredential(currentUid, null)
+
+        viewModelScope.launch {
+            authRepository.linkAccount(credential)
+        }
     }
 
-    fun fetchLocalStats(){
-        //Todo: get extensive data
-    }
 
-    // Optional but good practice
-    override fun onCleared() {
-        super.onCleared()
-        Log.d("lollipop", "onCleared: ")
-        statsJob?.cancel()
-    }
 }

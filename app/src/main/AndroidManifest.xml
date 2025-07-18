@@ -23,6 +23,14 @@
             Real id: ca-app-pub-7049640721055375~2167672729
         -->
 
+
+        <activity
+            android:name="com.firebase.ui.auth.KickoffActivity"
+            android:theme="@style/FirebaseAuthTheme"
+            tools:ignore="Instantiatable"
+            tools:replace="android:theme" />
+
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -33,6 +41,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
     </application>
 
 </manifest>

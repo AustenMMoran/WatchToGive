@@ -1,34 +1,39 @@
 package com.ap.watchtogive.data.repository
 
 import android.util.Log
-import com.ap.watchtogive.model.AuthProvider
 import com.ap.watchtogive.model.AuthState
 import com.ap.watchtogive.model.UserData
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.AuthCredential
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
 class AuthRepositoryImpl @Inject constructor(
-    private val firebaseAuth: FirebaseAuth
+    private val firebaseAuth: FirebaseAuth,
 ) : AuthRepository {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     override val authState: StateFlow<AuthState> = _authState
 
-    override suspend fun login() {
-        val currentUser = firebaseAuth.currentUser
-        if (currentUser != null) {
-            // User already signed in (anon or with provider)
-            _authState.value = mapFirebaseUserToAuthState(currentUser)
-        } else {
-            // No user signed in, sign in anonymously
-            val authResult = firebaseAuth.signInAnonymously().await()
-            _authState.value = mapFirebaseUserToAuthState(authResult.user)
+    init {
+        firebaseAuth.addAuthStateListener { auth ->
+            _authState.value = mapFirebaseUserToAuthState(auth.currentUser)
         }
     }
+
+    override suspend fun loginAnon() {
+        if (firebaseAuth.currentUser == null) {
+            firebaseAuth.signInAnonymously().await()
+        }
+    }
+
 
     private fun mapFirebaseUserToAuthState(user: FirebaseUser?): AuthState {
         if (user == null) return AuthState.Idle
@@ -44,7 +49,7 @@ class AuthRepositoryImpl @Inject constructor(
             Log.d("lollipop", "User is Anon: ${user.uid}")
             AuthState.LoggedInAnon(user = userData)
         } else {
-            Log.d("lollipop", "User is Known: ${user.uid}")
+            Log.d("lollipop", "User is Known: ${user.uid} Provider: ${user.providerData}")
             AuthState.LoggedIn(user = userData)
         }
     }
@@ -58,6 +63,11 @@ class AuthRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             _authState.value = AuthState.Error(e.localizedMessage ?: "Logout failed")
         }
+    }
+
+    override suspend fun signInWithGoogleIdToken(idToken: String) {
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+        firebaseAuth.signInWithCredential(credential).await()
     }
 
     override suspend fun linkAccount(
