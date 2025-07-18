@@ -1,5 +1,6 @@
 package com.ap.watchtogive.data.repository
 
+import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -28,7 +29,7 @@ class UserRepositoryImpl @Inject constructor(
         TODO("Not yet implemented")
     }
 
-    override fun getUserStatisticsAnon(): Flow<UserStatistics> {
+    override suspend fun getUserStatisticsAnon(): Flow<UserStatistics> {
         return dataStore.data.map { prefs ->
             val totalAds = prefs[TOTAL_ADS_WATCHED_KEY] ?: 0
             UserStatistics(totalWatchedAds = totalAds)
@@ -41,6 +42,7 @@ class UserRepositoryImpl @Inject constructor(
     }
 
     override suspend fun incrementAdWatchCountAnon() {
+        Log.d("lollipop", "incrementAdWatchCountAnon: ")
         // Read current value, increment and save back
         val currentCount = dataStore.data.first()[TOTAL_ADS_WATCHED_KEY] ?: 0
         val newCount = currentCount + 1

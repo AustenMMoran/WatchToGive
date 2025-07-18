@@ -28,6 +28,10 @@ class MainActivity() : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
+            val navController = rememberNavController()
+            val navBackStackEntry by navController.currentBackStackEntryAsState()
+            val currentRoute = navBackStackEntry?.destination?.route
+
             val mainViewModel: MainViewModel = hiltViewModel()
             val mainUiState by mainViewModel.mainUiState.collectAsState()
 
@@ -45,12 +49,6 @@ class MainActivity() : ComponentActivity() {
                         )
                     }
                     is MainUiState.Ready -> {
-                        val navController = rememberNavController()
-                        val navBackStackEntry by navController.currentBackStackEntryAsState()
-                        val currentRoute = navBackStackEntry?.destination?.route
-
-                        enableEdgeToEdge()
-
                         Scaffold(
                             modifier = Modifier.fillMaxSize(),
                             bottomBar = {
@@ -59,8 +57,13 @@ class MainActivity() : ComponentActivity() {
                                     onNavSelected = { newRoute ->
                                         if (newRoute != currentRoute) {
                                             navController.navigate(newRoute) {
-                                                // Optional: popUpTo, launchSingleTop, etc.
+                                                launchSingleTop = true       // Prevent duplicate destinations
+                                                restoreState = true          // Restore saved state (including ViewModel)
+                                                popUpTo(navController.graph.startDestinationId) {
+                                                    saveState = true         // Save state of popped destinations
+                                                }
                                             }
+
                                         }
                                     },
                                 )

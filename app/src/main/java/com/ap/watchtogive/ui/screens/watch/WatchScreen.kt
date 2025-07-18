@@ -21,9 +21,9 @@ import com.ap.watchtogive.model.AdState
 
 @Composable
 fun WatchScreen(
-    watchViewModel: WatchScreenViewModel = hiltViewModel(),
+    viewModel: WatchScreenViewModel = hiltViewModel(),
 ) {
-    val uiState by watchViewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
     val activity = LocalActivity.current
 
     val playButtonBackground = if (uiState.adLoadState is AdState.Loaded) {
@@ -42,7 +42,7 @@ fun WatchScreen(
             modifier = Modifier
                 .background(playButtonBackground),
             onClick = {
-                watchViewModel.showAd(activity = activity)
+                viewModel.showAd(activity = activity)
             }
         ) {
             Icon(

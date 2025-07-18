@@ -22,7 +22,7 @@ fun StatsScreen(
     when (uiState) {
         StatsScreenState.Loading -> LoadingView()
         is StatsScreenState.Error -> ErrorView(message = (uiState as StatsScreenState.Error).message)
-        is StatsScreenState.LoggedInAnon -> PlaceHolder((uiState as StatsScreenState.LoggedInAnon).stats)
+        is StatsScreenState.LoggedInAnon -> PlaceHolderAnon((uiState as StatsScreenState.LoggedInAnon).stats)
         is StatsScreenState.LoggedIn -> PlaceHolder((uiState as StatsScreenState.LoggedIn).stats)
     }
 
@@ -46,5 +46,12 @@ private fun ErrorView(message: String) {
 private fun PlaceHolder(stats: UserStatistics) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(text = "STATS SCREEN: ${stats.totalWatchedAds}", color = MaterialTheme.colorScheme.error)
+    }
+}
+
+@Composable
+private fun PlaceHolderAnon(stats: UserStatistics) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(text = "ANON STATS SCREEN: ${stats.totalWatchedAds}", color = MaterialTheme.colorScheme.error)
     }
 }

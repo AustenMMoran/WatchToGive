@@ -24,6 +24,17 @@ fun SelectScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    when (uiState) {
+        is SelectScreenState.Loading -> {
+            LoadingView()
+        }
+        is SelectScreenState.Success -> {
+            CharityList(charities = (uiState as SelectScreenState.Success).charities)
+        }
+        is SelectScreenState.Error -> {
+            ErrorView(message = (uiState as SelectScreenState.Error).message)
+        }
+    }
 }
 
 @Composable

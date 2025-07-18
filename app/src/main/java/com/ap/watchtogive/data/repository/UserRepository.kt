@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface UserRepository {
     fun getUserStatistics(uid: String): Flow<UserStatistics>
-    fun getUserStatisticsAnon(): Flow<UserStatistics>
+    suspend fun getUserStatisticsAnon(): Flow<UserStatistics>
     suspend fun incrementAdWatchCount()
     suspend fun incrementAdWatchCountAnon()
     suspend fun saveUserSelectedCharity(charityId: String)

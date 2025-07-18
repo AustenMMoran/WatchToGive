@@ -41,10 +41,10 @@ class AuthRepositoryImpl @Inject constructor(
         )
 
         return if (isAnon) {
-            Log.d("AuthRepository", "User is Anon: ${user.uid}")
+            Log.d("lollipop", "User is Anon: ${user.uid}")
             AuthState.LoggedInAnon(user = userData)
         } else {
-            Log.d("AuthRepository", "User is Known: ${user.uid}")
+            Log.d("lollipop", "User is Known: ${user.uid}")
             AuthState.LoggedIn(user = userData)
         }
     }
