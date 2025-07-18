@@ -61,14 +61,7 @@ class StatsViewModel @Inject constructor(
             else -> null
         }
 
-    fun linkAccount(){
 
-        val credential = GoogleAuthProvider.getCredential(currentUid, null)
-
-        viewModelScope.launch {
-            authRepository.linkAccount(credential)
-        }
-    }
 
 
 }

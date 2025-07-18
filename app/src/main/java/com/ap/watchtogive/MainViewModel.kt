@@ -14,6 +14,7 @@ import com.firebase.ui.auth.AuthUI
 import com.firebase.ui.auth.IdpResponse
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
 import com.google.android.gms.auth.api.identity.Identity
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -68,7 +69,7 @@ class MainViewModel @Inject constructor(
 
     fun loginWithToken(idToken: String) {
         viewModelScope.launch {
-            authRepository.signInWithGoogleIdToken(idToken)
+           authRepository.signInOrLinkWithGoogleIdToken(idToken)
         }
     }
 }

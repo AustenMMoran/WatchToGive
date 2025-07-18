@@ -6,6 +6,7 @@ import com.ap.watchtogive.model.UserData
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.AuthCredential
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -65,41 +66,18 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun signInWithGoogleIdToken(idToken: String) {
+    override suspend fun signInOrLinkWithGoogleIdToken(idToken: String) {
         val credential = GoogleAuthProvider.getCredential(idToken, null)
-        firebaseAuth.signInWithCredential(credential).await()
-    }
-
-    override suspend fun linkAccount(
-        credential: AuthCredential
-    ) {
         val currentUser = firebaseAuth.currentUser
 
-        if (currentUser == null) {
-            // No user signed in at all, maybe prompt sign in instead of link
-            _authState.value = AuthState.Error("No authenticated user to link account with")
-            return
-        }
-
         try {
-            // Try linking the credential to current user (which might be anonymous)
-            val authResult = currentUser.linkWithCredential(credential).await()
-
-            val firebaseUser = authResult.user
-
-            val userData = firebaseUser?.run {
-                UserData(
-                    uid = uid,
-                    displayName = displayName,
-                    email = email
-                )
+            if (currentUser != null && currentUser.isAnonymous) {
+                currentUser.linkWithCredential(credential).await()
+            } else {
+                firebaseAuth.signInWithCredential(credential).await()
             }
-
-            _authState.value = AuthState.LoggedIn(
-                user = userData
-            )
-        } catch (e: Exception) {
-            _authState.value = AuthState.Error(e.localizedMessage ?: "Error linking account")
+        } catch (e: FirebaseAuthUserCollisionException) {
+            firebaseAuth.signInWithCredential(credential).await()
         }
     }
 }

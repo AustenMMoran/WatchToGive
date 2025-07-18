@@ -9,10 +9,6 @@ interface AuthRepository {
     val authState: StateFlow<AuthState>
     suspend fun loginAnon()
     suspend fun logout()
-
-    suspend fun signInWithGoogleIdToken(idToken: String)
-    suspend fun linkAccount(
-        credential: AuthCredential
-    )
+    suspend fun signInOrLinkWithGoogleIdToken(idToken: String)
 
 }
