@@ -57,7 +57,7 @@ class MainActivity() : ComponentActivity() {
                 )
                 .build()
 
-            val launcher = rememberLauncherForActivityResult(
+            val googleCredentialLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.StartIntentSenderForResult()
             ) { result ->
                 if (result.resultCode == Activity.RESULT_OK) {
@@ -75,6 +75,13 @@ class MainActivity() : ComponentActivity() {
 
                 }
             }
+
+            val googleCreateAccountLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.StartActivityForResult()
+            ) { result ->
+                mainViewModel.setUiState(MainUiState.NoLoginDetails)
+            }
+
 
             LaunchedEffect(mainUiState) {
                 if (mainUiState is MainUiState.NoLoginDetails && navController.currentDestination != null) {
@@ -98,12 +105,11 @@ class MainActivity() : ComponentActivity() {
                                 mainViewModel.continueAsGuest()
                             },
                             onGoogleSignIn = {
-                                Log.d("lollipop", "ContinueAsGuestScreen: onSignIn")
                                 mainViewModel.setUiState(MainUiState.AuthLoading)
                                 oneTapClient.beginSignIn(signInRequest)
                                     .addOnSuccessListener { result ->
                                         try {
-                                            launcher.launch(
+                                            googleCredentialLauncher.launch(
                                                 Builder(result.pendingIntent.intentSender).build()
                                             )
                                         } catch (e: Exception) {
@@ -112,15 +118,13 @@ class MainActivity() : ComponentActivity() {
                                     }
                                     .addOnFailureListener { e ->
                                         val message = e.localizedMessage ?: ""
-
                                         Log.e("MainActivity", "One Tap beginSignIn failed: $message")
-
                                         if (message.contains("Cannot find a matching credential", ignoreCase = true)) {
-                                            // Save current account list
-                                            val intent = Intent(Settings.ACTION_ADD_ACCOUNT)
-                                            startActivity(intent)
+                                            val intent = Intent(Settings.ACTION_ADD_ACCOUNT).apply {
+                                                putExtra(Settings.EXTRA_ACCOUNT_TYPES, arrayOf("com.google"))
+                                            }
 
-                                            mainViewModel.setUiState(MainUiState.NoLoginDetails)
+                                            googleCreateAccountLauncher.launch(intent)
                                         } else {
                                             // Any other error — show a proper error screen
                                             mainViewModel.setUiState(MainUiState.Error(message))
