@@ -1,7 +1,9 @@
 package com.ap.watchtogive
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -69,8 +71,39 @@ class MainActivity() : ComponentActivity() {
                     }
                 } else {
                     Log.e("lollipop", "One Tap Sign-in failed or cancelled")
+                    mainViewModel.setUiState(MainUiState.Error(message = result.resultCode.toString()))
+
                 }
             }
+
+            val addAccountLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.StartActivityForResult()
+            ) { result ->
+                if (result.resultCode == Activity.RESULT_OK) {
+                    // User returned from adding account, try One Tap sign-in again
+                    Log.d("MainActivity", "Returned from Add Account, retry One Tap")
+                    mainViewModel.setUiState(MainUiState.AuthLoading)
+
+                    oneTapClient.beginSignIn(signInRequest)
+                        .addOnSuccessListener { result ->
+                            try {
+                                launcher.launch(Builder(result.pendingIntent.intentSender).build())
+                            } catch (e: Exception) {
+                                Log.e("MainActivity", "Couldn't launch One Tap UI: ${e.localizedMessage}")
+                                mainViewModel.setUiState(MainUiState.Error(message = e.localizedMessage ?: "Unknown error"))
+                            }
+                        }
+                        .addOnFailureListener { e ->
+                            Log.e("MainActivity", "One Tap beginSignIn failed after adding account: ${e.localizedMessage}")
+                            mainViewModel.setUiState(MainUiState.Error(message = e.localizedMessage ?: "Unknown error"))
+                        }
+                } else {
+                    Log.d("MainActivity", "Add Account cancelled or failed")
+                    mainViewModel.setUiState(MainUiState.Error(message = result.toString()))
+
+                }
+            }
+
 
             LaunchedEffect(mainUiState) {
                 if (mainUiState is MainUiState.NoLoginDetails && navController.currentDestination != null) {
@@ -90,12 +123,12 @@ class MainActivity() : ComponentActivity() {
                     is MainUiState.NoLoginDetails -> {
                         ChooseAccountType(
                             onContinueAsGuest = {
-                                mainViewModel.setLoading()
+                                mainViewModel.setUiState(MainUiState.AuthLoading)
                                 mainViewModel.continueAsGuest()
                             },
                             onGoogleSignIn = {
                                 Log.d("lollipop", "ContinueAsGuestScreen: onSignIn")
-                                mainViewModel.setLoading()
+                                mainViewModel.setUiState(MainUiState.AuthLoading)
                                 oneTapClient.beginSignIn(signInRequest)
                                     .addOnSuccessListener { result ->
                                         try {
@@ -108,6 +141,9 @@ class MainActivity() : ComponentActivity() {
                                     }
                                     .addOnFailureListener { e ->
                                         Log.e("MainActivity", "One Tap beginSignIn failed: ${e.localizedMessage}")
+                                        val intent = Intent(Settings.ACTION_ADD_ACCOUNT)
+                                        intent.putExtra(Settings.EXTRA_ACCOUNT_TYPES, arrayOf("com.google"))
+                                        addAccountLauncher.launch(intent)
                                     }
                             }
                         )
@@ -117,7 +153,7 @@ class MainActivity() : ComponentActivity() {
                         ErrorScreen(
                             message = (mainUiState as MainUiState.Error).message,
                             onRetry = {
-                                mainViewModel.retryAuth()
+                                mainViewModel.setUiState(MainUiState.NoLoginDetails)
                             }
                         )
                     }

@@ -75,8 +75,6 @@ class StatsViewModel @Inject constructor(
             else -> null
         }
 
-
-
     fun signOut() {
         viewModelScope.launch {
             authRepository.signOut()

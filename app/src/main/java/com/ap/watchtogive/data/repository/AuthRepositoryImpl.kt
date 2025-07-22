@@ -1,6 +1,9 @@
 package com.ap.watchtogive.data.repository
 
 import android.util.Log
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
 import com.ap.watchtogive.data.constants.FirestorePaths
 import com.ap.watchtogive.model.AuthState
 import com.ap.watchtogive.model.UserData
@@ -21,7 +24,8 @@ import kotlin.coroutines.suspendCoroutine
 
 class AuthRepositoryImpl @Inject constructor(
     private val firebaseAuth: FirebaseAuth,
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val dataStore: DataStore<Preferences>
 ) : AuthRepository {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     override val authState: StateFlow<AuthState> = _authState
@@ -87,8 +91,10 @@ class AuthRepositoryImpl @Inject constructor(
 
         try {
             if (isAnon) {
-                // Delete user data in Firestore
-                firestore.collection(FirestorePaths.USERS).document(user.uid).delete().await()
+                // Delete user data in DataStore
+                dataStore.edit { prefs ->
+                    prefs.clear()
+                }
 
                 // Delete user from Firebase Auth (anonymous user)
                 user.delete().await()

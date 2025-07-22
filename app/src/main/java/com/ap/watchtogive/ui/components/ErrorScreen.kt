@@ -43,7 +43,7 @@ fun ErrorScreen(
 
             if (onRetry != null) {
                 Button(onClick = onRetry) {
-                    Text("Retry")
+                    Text("Back")
                 }
             }
         }

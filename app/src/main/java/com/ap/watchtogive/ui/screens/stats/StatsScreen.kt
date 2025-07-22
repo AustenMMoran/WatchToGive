@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ap.watchtogive.model.UserStatistics
 import com.firebase.ui.auth.AuthUI
 import com.firebase.ui.auth.IdpResponse
@@ -128,7 +129,7 @@ private fun PlaceHolderAnon(
         AlertDialog(
             onDismissRequest = { showSignOutDialog = false },
             title = { Text("Confirm Sign Out") },
-            text = { Text("Are you sure you want to sign out?") },
+            text = { Text("Are you sure you want to sign out? Your guest account and all associated data will be permanently deleted")},
             confirmButton = {
                 TextButton(onClick = {
                     showSignOutDialog = false
