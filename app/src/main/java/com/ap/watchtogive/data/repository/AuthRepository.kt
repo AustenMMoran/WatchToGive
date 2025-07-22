@@ -10,5 +10,6 @@ interface AuthRepository {
     suspend fun loginAnon()
     suspend fun logout()
     suspend fun signInOrLinkWithGoogleIdToken(idToken: String)
+    suspend fun signOut()
 
 }

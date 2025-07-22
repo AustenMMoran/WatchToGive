@@ -30,6 +30,9 @@ class StatsViewModel @Inject constructor(
     val uiState: StateFlow<StatsScreenState> = _uiState.asStateFlow()
     private var statsJob: Job? = null
 
+    private val _signOutResult = MutableStateFlow<Boolean?>(null)
+    val signOutResult: StateFlow<Boolean?> = _signOutResult
+
     init {
         viewModelScope.launch {
             authRepository.authState.collect { authState ->
@@ -43,6 +46,17 @@ class StatsViewModel @Inject constructor(
                                 _uiState.value = StatsScreenState.LoggedInAnon(stats)
                             }
                         }
+                    }
+
+                    is AuthState.LoggedIn -> {
+                        Log.d("lollipop", "AuthState.LoggedIn")
+
+//                        statsJob = launch {
+//                            userRepository.getUserStatistics(authState.user).collectLatest { stats ->
+//                                Log.d("lollipop", "stat: $stats")
+//                                _uiState.value = StatsScreenState.LoggedInAnon(stats)
+//                            }
+//                        }
                     }
 
                     else -> {
@@ -62,6 +76,12 @@ class StatsViewModel @Inject constructor(
         }
 
 
+
+    fun signOut() {
+        viewModelScope.launch {
+            authRepository.signOut()
+        }
+    }
 
 
 }

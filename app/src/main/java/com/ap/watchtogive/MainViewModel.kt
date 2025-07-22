@@ -8,6 +8,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ap.watchtogive.MainUiState.*
 import com.ap.watchtogive.data.repository.AuthRepository
 import com.ap.watchtogive.model.AuthState
 import com.firebase.ui.auth.AuthUI
@@ -31,27 +32,23 @@ class MainViewModel @Inject constructor(
     private val authRepository: AuthRepository
 ): ViewModel(){
 
-    private val _mainUiState = MutableStateFlow<MainUiState>(MainUiState.Loading)
+    private val _mainUiState = MutableStateFlow<MainUiState>(MainUiState.AuthLoading)
     val mainUiState: StateFlow<MainUiState> = _mainUiState
-
 
     init {
         viewModelScope.launch {
             authRepository.authState.collect { state ->
                 Log.d("lollipop", "AUTH STATE MVM = $state")
                 _mainUiState.value = when (state) {
-                    is AuthState.Idle -> MainUiState.Loading
-                    is AuthState.LoggedIn -> MainUiState.Ready
-                    is AuthState.LoggedInAnon -> MainUiState.ReadyAsGuest
-                    is AuthState.Error -> MainUiState.Error(state.message)
+                    is AuthState.Idle -> AuthLoading
+                    is AuthState.NoLogInDetails -> NoLoginDetails
+                    is AuthState.LoggedIn -> Ready
+                    is AuthState.LoggedInAnon -> ReadyAsGuest
+                    is AuthState.Error -> Error(state.message)
                 }
             }
         }
 
-        // Trigger login (could be automatic anonymous sign-in)
-        viewModelScope.launch {
-            authRepository.loginAnon()
-        }
     }
 
     fun retryAuth(){
@@ -61,10 +58,13 @@ class MainViewModel @Inject constructor(
     }
 
     fun continueAsGuest(){
-        _mainUiState.value = MainUiState.Ready
+        viewModelScope.launch {
+            authRepository.loginAnon()
+        }
     }
+
     fun setLoading(){
-        _mainUiState.value = MainUiState.Loading
+        _mainUiState.value = MainUiState.AuthLoading
     }
 
     fun loginWithToken(idToken: String) {

@@ -1,5 +1,6 @@
 package com.ap.watchtogive.data.repository
 
+import com.ap.watchtogive.data.constants.FirestorePaths
 import com.ap.watchtogive.model.Charity
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
@@ -14,7 +15,7 @@ class CharitiesRepositoryImpl @Inject constructor(
 
     override fun getCharitiesByLocation(location: String): Flow<List<Charity>> =
         callbackFlow {
-            val collectionName = "charities_$location"
+            val collectionName = "${FirestorePaths.CHARITIES}_$location"
 
             val listenerRegistration: ListenerRegistration =
                 firestore

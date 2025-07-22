@@ -5,12 +5,16 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import com.ap.watchtogive.data.constants.FirestorePaths
+import com.ap.watchtogive.model.UserData
 import com.ap.watchtogive.model.UserStatistics
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
@@ -36,8 +40,24 @@ class UserRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun getUserStatistics(userData: UserData): Flow<UserStatistics> = callbackFlow {
+        val docRef = firestore.collection(FirestorePaths.USERS).document(userData.uid)
 
-    override suspend fun incrementAdWatchCount() {
+        val listener = docRef.addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                close(error)
+                return@addSnapshotListener
+            }
+
+            val stats = snapshot?.getLong("totalWatchedAds")?.toInt() ?: 0
+            trySend(UserStatistics(totalWatchedAds = stats))
+        }
+
+        awaitClose { listener.remove() }
+    }
+
+
+override suspend fun incrementAdWatchCount() {
         TODO("Not yet implemented")
     }
 

@@ -1,6 +1,5 @@
 package com.ap.watchtogive.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -14,9 +13,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun ContinueAsGuestScreen(
+fun ChooseAccountType(
     onContinueAsGuest: () -> Unit,
-    onSignIn: () -> Unit
+    onGoogleSignIn: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -52,7 +51,7 @@ fun ContinueAsGuestScreen(
 
             // Sign In Button (primary color)
             Button(
-                onClick = onSignIn,
+                onClick = onGoogleSignIn,
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.weight(1f)
             ) {
