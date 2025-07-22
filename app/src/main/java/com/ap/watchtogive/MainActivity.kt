@@ -76,35 +76,6 @@ class MainActivity() : ComponentActivity() {
                 }
             }
 
-            val addAccountLauncher = rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.StartActivityForResult()
-            ) { result ->
-                if (result.resultCode == Activity.RESULT_OK) {
-                    // User returned from adding account, try One Tap sign-in again
-                    Log.d("MainActivity", "Returned from Add Account, retry One Tap")
-                    mainViewModel.setUiState(MainUiState.AuthLoading)
-
-                    oneTapClient.beginSignIn(signInRequest)
-                        .addOnSuccessListener { result ->
-                            try {
-                                launcher.launch(Builder(result.pendingIntent.intentSender).build())
-                            } catch (e: Exception) {
-                                Log.e("MainActivity", "Couldn't launch One Tap UI: ${e.localizedMessage}")
-                                mainViewModel.setUiState(MainUiState.Error(message = e.localizedMessage ?: "Unknown error"))
-                            }
-                        }
-                        .addOnFailureListener { e ->
-                            Log.e("MainActivity", "One Tap beginSignIn failed after adding account: ${e.localizedMessage}")
-                            mainViewModel.setUiState(MainUiState.Error(message = e.localizedMessage ?: "Unknown error"))
-                        }
-                } else {
-                    Log.d("MainActivity", "Add Account cancelled or failed")
-                    mainViewModel.setUiState(MainUiState.Error(message = result.toString()))
-
-                }
-            }
-
-
             LaunchedEffect(mainUiState) {
                 if (mainUiState is MainUiState.NoLoginDetails && navController.currentDestination != null) {
                     navController.navigate(Screen.CharityWatch.route) {
@@ -140,11 +111,22 @@ class MainActivity() : ComponentActivity() {
                                         }
                                     }
                                     .addOnFailureListener { e ->
-                                        Log.e("MainActivity", "One Tap beginSignIn failed: ${e.localizedMessage}")
-                                        val intent = Intent(Settings.ACTION_ADD_ACCOUNT)
-                                        intent.putExtra(Settings.EXTRA_ACCOUNT_TYPES, arrayOf("com.google"))
-                                        addAccountLauncher.launch(intent)
+                                        val message = e.localizedMessage ?: ""
+
+                                        Log.e("MainActivity", "One Tap beginSignIn failed: $message")
+
+                                        if (message.contains("Cannot find a matching credential", ignoreCase = true)) {
+                                            // Save current account list
+                                            val intent = Intent(Settings.ACTION_ADD_ACCOUNT)
+                                            startActivity(intent)
+
+                                            mainViewModel.setUiState(MainUiState.NoLoginDetails)
+                                        } else {
+                                            // Any other error — show a proper error screen
+                                            mainViewModel.setUiState(MainUiState.Error(message))
+                                        }
                                     }
+
                             }
                         )
                     }
