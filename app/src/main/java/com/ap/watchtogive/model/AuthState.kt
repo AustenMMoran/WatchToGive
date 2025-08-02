@@ -10,7 +10,7 @@ sealed class AuthState {
     }
 
     data class LoggedIn(
-        val user: UserData? = null
+        val user: UserData
     ): AuthState()
 
     data class LoggedInAnon(

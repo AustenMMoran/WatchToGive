@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">WatchToGive</string>
+    <string name="add_still_loading">Add still loading</string>
 </resources>

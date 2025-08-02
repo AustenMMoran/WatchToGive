@@ -92,7 +92,7 @@ private fun ErrorView(message: String) {
 @Composable
 private fun PlaceHolder(stats: UserStatistics) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = "STATS SCREEN: ${stats.totalWatchedAds}", color = MaterialTheme.colorScheme.error)
+        Text(text = "STATS SCREEN: ${stats.totalWatchedAds}, ${stats.currentStreak}", color = MaterialTheme.colorScheme.error)
     }
 }
 

@@ -51,17 +51,17 @@ class StatsViewModel @Inject constructor(
                     is AuthState.LoggedIn -> {
                         Log.d("lollipop", "AuthState.LoggedIn")
 
-//                        statsJob = launch {
-//                            userRepository.getUserStatistics(authState.user).collectLatest { stats ->
-//                                Log.d("lollipop", "stat: $stats")
-//                                _uiState.value = StatsScreenState.LoggedInAnon(stats)
-//                            }
-//                        }
+                        statsJob = launch {
+                            userRepository.getUserStatistics(authState.user).collectLatest { stats ->
+                                Log.d("lollipop", "stat: $stats")
+                                _uiState.value = StatsScreenState.LoggedIn(stats)
+                            }
+                        }
                     }
 
                     else -> {
                         statsJob = null
-                        _uiState.value = StatsScreenState.Loading // or appropriate state
+                        _uiState.value = StatsScreenState.Error("error")
                     }
                 }
             }

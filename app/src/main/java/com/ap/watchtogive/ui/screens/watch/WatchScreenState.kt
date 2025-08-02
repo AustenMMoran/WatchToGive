@@ -1,6 +1,7 @@
 package com.ap.watchtogive.ui.screens.watch
 
 import com.ap.watchtogive.model.AdState
+import com.ap.watchtogive.model.StreakState
 
 /**
  * States will have to include:
@@ -11,6 +12,6 @@ import com.ap.watchtogive.model.AdState
 data class WatchScreenState(
     val selectedCharityId: String? = null,
     val adsWatchedToday: Int = 0,
-    val currentDailyStreak: Int = 0,
+    val currentDailyStreak: StreakState? = null,
     val adLoadState: AdState = AdState.Loading,
 )

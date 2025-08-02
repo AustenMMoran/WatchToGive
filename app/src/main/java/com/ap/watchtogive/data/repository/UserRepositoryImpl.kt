@@ -6,22 +6,28 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import com.ap.watchtogive.data.constants.FirestorePaths
+import com.ap.watchtogive.model.StreakState
 import com.ap.watchtogive.model.UserData
 import com.ap.watchtogive.model.UserStatistics
+import com.google.firebase.Timestamp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.tasks.await
+import java.time.LocalDate
+import java.time.ZoneId
 import javax.inject.Inject
 
 
 class UserRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
+    private val firebaseAuth: FirebaseAuth,
     private val dataStore: DataStore<Preferences>
 ) : UserRepository {
 
@@ -36,7 +42,11 @@ class UserRepositoryImpl @Inject constructor(
     override suspend fun getUserStatisticsAnon(): Flow<UserStatistics> {
         return dataStore.data.map { prefs ->
             val totalAds = prefs[TOTAL_ADS_WATCHED_KEY] ?: 0
-            UserStatistics(totalWatchedAds = totalAds)
+
+            UserStatistics(
+                totalWatchedAds = totalAds,
+                currentStreak = null
+            )
         }
     }
 
@@ -49,17 +59,59 @@ class UserRepositoryImpl @Inject constructor(
                 return@addSnapshotListener
             }
 
-            val stats = snapshot?.getLong("totalWatchedAds")?.toInt() ?: 0
-            trySend(UserStatistics(totalWatchedAds = stats))
+            val count = snapshot?.getLong(FirestorePaths.USERS_TOTAL_ADS_WATCHED)?.toInt() ?: 0
+            val streak = snapshot?.getLong(FirestorePaths.USERS_CURRENT_STREAK)?.toInt()
+
+            trySend(
+                UserStatistics(
+                    totalWatchedAds = count,
+                    currentStreak = streak
+                )
+            )
         }
 
         awaitClose { listener.remove() }
     }
 
 
-override suspend fun incrementAdWatchCount() {
-        TODO("Not yet implemented")
+    override suspend fun incrementAdWatchCount(): StreakState {
+        val userId = firebaseAuth.currentUser!!.uid
+        val userDoc = firestore.collection(FirestorePaths.USERS).document(userId)
+
+        return firestore.runTransaction { transaction ->
+            val snapshot = transaction.get(userDoc)
+
+            val currentStreak = snapshot.getLong(FirestorePaths.USERS_CURRENT_STREAK) ?: 0
+            val lastWatched = snapshot.getTimestamp("lastWatchedDate")
+            val today = LocalDate.now()
+            val lastDate = lastWatched?.toDate()
+                ?.toInstant()
+                ?.atZone(ZoneId.systemDefault())
+                ?.toLocalDate()
+
+            val (updatedCount, streakResult) = when {
+                lastDate == null -> currentStreak + 1 to StreakState.Started(currentStreak.toInt() + 1)
+                lastDate.isBefore(today) -> currentStreak + 1 to StreakState.Continued(currentStreak.toInt() + 1)
+                lastDate.isEqual(today) -> currentStreak to StreakState.NoChange(currentStreak.toInt())
+                else -> currentStreak to StreakState.NoChange(currentStreak.toInt())
+            }
+
+
+            val updates = mapOf(
+                FirestorePaths.USERS_CURRENT_STREAK to updatedCount,
+                FirestorePaths.USERS_LAST_WATCHED_DATE to Timestamp.now(),
+                FirestorePaths.USERS_TOTAL_ADS_WATCHED to FieldValue.increment(1)
+            )
+
+            transaction.set(userDoc, updates, SetOptions.merge())
+
+            // Return streak result from the transaction
+            streakResult
+        }.addOnFailureListener {
+            Log.e("Firestore", "Failed to increment ad watch", it)
+        }.await()
     }
+
 
     override suspend fun incrementAdWatchCountAnon() {
         Log.d("lollipop", "incrementAdWatchCountAnon: ")
