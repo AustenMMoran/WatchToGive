@@ -14,4 +14,8 @@ data class WatchScreenState(
     val adsWatchedToday: Int = 0,
     val currentDailyStreak: StreakState? = null,
     val adLoadState: AdState = AdState.Loading,
+
+    //Streak States
+    val showBrokenStreakDialog: Boolean = false,
+    val isStreakAtRisk: Boolean = false
 )

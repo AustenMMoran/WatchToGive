@@ -26,7 +26,8 @@ class MainViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            authRepository.authState.collect { state ->
+            authRepository.authState
+                .collect { state ->
                 Log.d("lollipop", "AUTH STATE MVM = $state")
                 _mainUiState.value = when (state) {
                     is AuthState.Idle -> AuthLoading
@@ -38,12 +39,6 @@ class MainViewModel @Inject constructor(
             }
         }
 
-    }
-
-    fun retryAuth(){
-        viewModelScope.launch {
-            authRepository.loginAnon()
-        }
     }
 
     fun continueAsGuest(){

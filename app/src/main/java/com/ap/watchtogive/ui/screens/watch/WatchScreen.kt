@@ -23,6 +23,7 @@ import androidx.compose.ui.res.colorResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.ap.watchtogive.model.AdState
 import com.ap.watchtogive.model.StreakState
+import com.ap.watchtogive.ui.components.StreakBrokenDialog
 
 @Composable
 fun WatchScreen(
@@ -37,6 +38,12 @@ fun WatchScreen(
         colorResource(id = color.holo_red_light)
     } else {
         Color.Gray
+    }
+
+    if (uiState.showBrokenStreakDialog) {
+        StreakBrokenDialog {
+            viewModel.acknowledgedBrokenStreak()
+        }
     }
 
     Column(

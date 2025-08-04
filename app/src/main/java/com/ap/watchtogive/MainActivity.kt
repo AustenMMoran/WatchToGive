@@ -82,7 +82,6 @@ class MainActivity() : ComponentActivity() {
                 mainViewModel.setUiState(MainUiState.NoLoginDetails)
             }
 
-
             LaunchedEffect(mainUiState) {
                 if (mainUiState is MainUiState.NoLoginDetails && navController.currentDestination != null) {
                     navController.navigate(Screen.CharityWatch.route) {

@@ -11,6 +11,7 @@ import com.ap.watchtogive.model.UserData
 import com.ap.watchtogive.model.UserStatistics
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
@@ -22,6 +23,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 
@@ -73,6 +75,44 @@ class UserRepositoryImpl @Inject constructor(
         awaitClose { listener.remove() }
     }
 
+    override suspend fun getCurrentStreakState(uid: String): StreakState {
+        val docRef = firestore.collection(FirestorePaths.USERS).document(uid)
+        val snapshot: DocumentSnapshot = docRef.get().await()
+
+        if (!snapshot.exists()) {
+            // No data for user, streak probably just started
+            return StreakState.NoStreak
+        }
+
+        val timestamp = snapshot.getTimestamp(FirestorePaths.USERS_LAST_WATCHED_DATE)
+        if (timestamp == null) {
+            // No last watched date, treat as streak started
+            return StreakState.NoStreak
+        }
+
+        val lastDate = timestamp.toDate().toInstant()
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate()
+
+        val today = LocalDate.now()
+        val daysBetween = ChronoUnit.DAYS.between(lastDate, today).toInt()
+        val streakSize = snapshot.getLong(FirestorePaths.USERS_CURRENT_STREAK)?.toInt() ?: return StreakState.ErrorGettingData
+
+        return when {
+            daysBetween == 0 -> {
+                // Same day, streak continues but no change
+                StreakState.NoChange(streakSize)
+            }
+            daysBetween == 1 -> {
+                // Yesterday was last watched, streak continues +1
+                StreakState.AtRisk(streakSize)
+            }
+            else -> {
+                // Gap > 1 day, streak broken
+                StreakState.Broken
+            }
+        }
+    }
 
     override suspend fun incrementAdWatchCount(): StreakState {
         val userId = firebaseAuth.currentUser!!.uid
@@ -126,6 +166,16 @@ class UserRepositoryImpl @Inject constructor(
 
     override suspend fun saveUserSelectedCharity(charityId: String) {
         TODO("Not yet implemented")
+    }
+
+    override suspend fun resetUsersStreak(uid: String) {
+        val userDoc = firestore.collection(FirestorePaths.USERS).document(uid)
+        userDoc.update(
+            mapOf(
+                FirestorePaths.USERS_LAST_WATCHED_DATE to FieldValue.delete(),
+                FirestorePaths.USERS_CURRENT_STREAK to FieldValue.delete()
+            )
+        )
     }
 
 }

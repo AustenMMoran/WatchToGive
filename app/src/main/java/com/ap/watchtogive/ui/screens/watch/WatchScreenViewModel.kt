@@ -9,6 +9,7 @@ import com.ap.watchtogive.data.repository.AdsRepository
 import com.ap.watchtogive.data.repository.AuthRepository
 import com.ap.watchtogive.data.repository.UserRepository
 import com.ap.watchtogive.model.AuthState
+import com.ap.watchtogive.model.StreakState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,11 +32,40 @@ class WatchScreenViewModel
 
     // todo: remember to set loadstate.error -> loadadd()
         init {
+            // Load ad + manage state
             adsRepository.loadAd()
             viewModelScope.launch {
                 adsRepository.adLoadState.collect { adState ->
                     Log.d("lollipop", "Watch Screen state: $adState")
                     _uiState.value = _uiState.value.copy(adLoadState = adState)
+                }
+            }
+
+            // Consider user's streak
+            viewModelScope.launch {
+                val state = authRepository.authState.value
+                if (state is AuthState.LoggedIn) {
+                    try {
+                        val streakState = userRepository.getCurrentStreakState(state.user.uid) // e.g., Firestore fetch
+                        when (streakState){
+                            is StreakState.NoChange -> {}
+                            is StreakState.Continued -> {}
+                            is StreakState.Started -> {}
+                            is StreakState.AtRisk -> {
+                                _uiState.update { currentState ->
+                                    currentState.copy(isStreakAtRisk = true)
+                                }
+                            }
+                            StreakState.Broken -> {
+                                userRepository.resetUsersStreak(state.user.uid)
+                                _uiState.update { currentState ->
+                                    currentState.copy(showBrokenStreakDialog = true)
+                                }
+                            }
+                            StreakState.NoStreak -> {}
+                            StreakState.ErrorGettingData -> {}
+                        }
+                    } catch (_: Exception){}
                 }
             }
 
@@ -79,6 +109,9 @@ class WatchScreenViewModel
         }
     }
 
-
-        fun isAdReady(): Boolean = adsRepository.isAdAvailable()
+    fun acknowledgedBrokenStreak() {
+        _uiState.update {
+            it.copy(showBrokenStreakDialog = false)
+        }
     }
+}

@@ -58,10 +58,10 @@ fun StatsScreen(
         }
     }
 
-    when (uiState) {
+    when (val state = uiState) {
         StatsScreenState.Loading -> LoadingView()
-        is StatsScreenState.Error -> ErrorView(message = (uiState as StatsScreenState.Error).message)
-        is StatsScreenState.LoggedInAnon -> PlaceHolderAnon((uiState as StatsScreenState.LoggedInAnon).stats,
+        is StatsScreenState.Error -> ErrorView(message = state.message)
+        is StatsScreenState.LoggedInAnon -> PlaceHolderAnon(state.stats,
             onLinkAccount = {
                 launcher.launch(signInIntent)
             },
@@ -70,7 +70,14 @@ fun StatsScreen(
                 viewModel.signOut()
             }
         )
-        is StatsScreenState.LoggedIn -> PlaceHolder((uiState as StatsScreenState.LoggedIn).stats)
+        is StatsScreenState.LoggedIn -> PlaceHolder(
+            state.stats,
+
+            onSignOut = {
+                viewModel.signOut()
+            }
+
+        )
     }
 
 }
@@ -90,7 +97,10 @@ private fun ErrorView(message: String) {
 }
 
 @Composable
-private fun PlaceHolder(stats: UserStatistics) {
+private fun PlaceHolder(
+    stats: UserStatistics,
+    onSignOut: () -> Unit
+) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(text = "STATS SCREEN: ${stats.totalWatchedAds}, ${stats.currentStreak}", color = MaterialTheme.colorScheme.error)
     }
