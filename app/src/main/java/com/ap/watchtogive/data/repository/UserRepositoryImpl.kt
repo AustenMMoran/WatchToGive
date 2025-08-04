@@ -14,9 +14,12 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -30,12 +33,55 @@ import javax.inject.Inject
 class UserRepositoryImpl @Inject constructor(
     private val firestore: FirebaseFirestore,
     private val firebaseAuth: FirebaseAuth,
-    private val dataStore: DataStore<Preferences>
+    private val dataStore: DataStore<Preferences>,
 ) : UserRepository {
+
+    private val _currentStreakState = MutableStateFlow<StreakState>(StreakState.NoStreak)
+    override val currentStreakState: StateFlow<StreakState> = _currentStreakState
+    private var listenerRegistration: ListenerRegistration? = null
+
 
     companion object {
         val TOTAL_ADS_WATCHED_KEY = intPreferencesKey("total_ads_watched")
     }
+
+    override fun getCurrentStreak(uid: String) {
+        val docRef = firestore.collection(FirestorePaths.USERS).document(uid)
+        listenerRegistration?.remove()  // Remove any previous listener to avoid duplicates
+
+        listenerRegistration = docRef.addSnapshotListener { snapshot, error ->
+            if (error != null || snapshot == null || !snapshot.exists()) {
+                _currentStreakState.value = StreakState.ErrorGettingData
+                return@addSnapshotListener
+            }
+
+            val timestamp = snapshot.getTimestamp(FirestorePaths.USERS_LAST_WATCHED_TIMESTAMP)
+            val streakCount = snapshot.getLong(FirestorePaths.USERS_CURRENT_STREAK)?.toInt()
+
+            if (timestamp == null || streakCount == null) {
+                _currentStreakState.value = StreakState.NoStreak
+                return@addSnapshotListener
+            }
+
+            val lastDate = timestamp.toDate().toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
+
+            val today = LocalDate.now()
+            val daysBetween = ChronoUnit.DAYS.between(lastDate, today).toInt()
+
+            val newState = when {
+                daysBetween == 0 -> StreakState.NoChange(streakCount)
+                daysBetween == 1 -> StreakState.AtRisk(streakCount)
+                daysBetween > 1 -> StreakState.Broken
+                else -> StreakState.ErrorGettingData
+            }
+
+            _currentStreakState.value = newState
+        }
+    }
+
+
 
     override fun getUserStatistics(uid: String): Flow<UserStatistics> {
         TODO("Not yet implemented")
@@ -75,45 +121,6 @@ class UserRepositoryImpl @Inject constructor(
         awaitClose { listener.remove() }
     }
 
-    override suspend fun getCurrentStreakState(uid: String): StreakState {
-        val docRef = firestore.collection(FirestorePaths.USERS).document(uid)
-        val snapshot: DocumentSnapshot = docRef.get().await()
-
-        if (!snapshot.exists()) {
-            // No data for user, streak probably just started
-            return StreakState.NoStreak
-        }
-
-        val timestamp = snapshot.getTimestamp(FirestorePaths.USERS_LAST_WATCHED_DATE)
-        if (timestamp == null) {
-            // No last watched date, treat as streak started
-            return StreakState.NoStreak
-        }
-
-        val lastDate = timestamp.toDate().toInstant()
-            .atZone(ZoneId.systemDefault())
-            .toLocalDate()
-
-        val today = LocalDate.now()
-        val daysBetween = ChronoUnit.DAYS.between(lastDate, today).toInt()
-        val streakSize = snapshot.getLong(FirestorePaths.USERS_CURRENT_STREAK)?.toInt() ?: return StreakState.ErrorGettingData
-
-        return when {
-            daysBetween == 0 -> {
-                // Same day, streak continues but no change
-                StreakState.NoChange(streakSize)
-            }
-            daysBetween == 1 -> {
-                // Yesterday was last watched, streak continues +1
-                StreakState.AtRisk(streakSize)
-            }
-            else -> {
-                // Gap > 1 day, streak broken
-                StreakState.Broken
-            }
-        }
-    }
-
     override suspend fun incrementAdWatchCount(): StreakState {
         val userId = firebaseAuth.currentUser!!.uid
         val userDoc = firestore.collection(FirestorePaths.USERS).document(userId)
@@ -122,7 +129,7 @@ class UserRepositoryImpl @Inject constructor(
             val snapshot = transaction.get(userDoc)
 
             val currentStreak = snapshot.getLong(FirestorePaths.USERS_CURRENT_STREAK) ?: 0
-            val lastWatched = snapshot.getTimestamp("lastWatchedDate")
+            val lastWatched = snapshot.getTimestamp(FirestorePaths.USERS_LAST_WATCHED_TIMESTAMP)
             val today = LocalDate.now()
             val lastDate = lastWatched?.toDate()
                 ?.toInstant()
@@ -136,10 +143,9 @@ class UserRepositoryImpl @Inject constructor(
                 else -> currentStreak to StreakState.NoChange(currentStreak.toInt())
             }
 
-
             val updates = mapOf(
                 FirestorePaths.USERS_CURRENT_STREAK to updatedCount,
-                FirestorePaths.USERS_LAST_WATCHED_DATE to Timestamp.now(),
+                FirestorePaths.USERS_LAST_WATCHED_TIMESTAMP to Timestamp.now(),
                 FirestorePaths.USERS_TOTAL_ADS_WATCHED to FieldValue.increment(1)
             )
 
@@ -172,7 +178,7 @@ class UserRepositoryImpl @Inject constructor(
         val userDoc = firestore.collection(FirestorePaths.USERS).document(uid)
         userDoc.update(
             mapOf(
-                FirestorePaths.USERS_LAST_WATCHED_DATE to FieldValue.delete(),
+                FirestorePaths.USERS_LAST_WATCHED_TIMESTAMP to FieldValue.delete(),
                 FirestorePaths.USERS_CURRENT_STREAK to FieldValue.delete()
             )
         )
