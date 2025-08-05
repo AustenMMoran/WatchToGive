@@ -10,12 +10,12 @@ import com.ap.watchtogive.data.repository.AuthRepository
 import com.ap.watchtogive.data.repository.UserRepository
 import com.ap.watchtogive.model.AuthState
 import com.ap.watchtogive.model.StreakState
-import com.google.android.gms.auth.api.Auth
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -30,6 +30,7 @@ class WatchScreenViewModel
     ) : ViewModel() {
     private val _uiState = MutableStateFlow(WatchScreenState())
     val uiState: StateFlow<WatchScreenState> = _uiState.asStateFlow()
+    private var streakJob: Job? = null
 
 
     // todo: remember to set loadstate.error -> loadadd()
@@ -46,33 +47,49 @@ class WatchScreenViewModel
 
         // Consider user's streak
         viewModelScope.launch {
-            val state = authRepository.authState.value
-            if (state is AuthState.LoggedIn) {
-                userRepository.getCurrentStreak(state.user.uid)
-                userRepository.currentStreakState.collect { streakState ->
-                    Log.d("lollipop", "StreakState Updated: $streakState")
-                    when (streakState){
-                        is StreakState.NoChange -> {}
-                        is StreakState.Continued -> {}
-                        is StreakState.Started -> {}
-                        is StreakState.AtRisk -> {
-                            _uiState.update { currentState ->
-                                currentState.copy(isStreakAtRisk = true)
-                            }
+            authRepository.authState.collectLatest { state ->
+                streakJob?.cancel()  // Cancel previous collection if any
+                if (state is AuthState.LoggedIn) {
+                    userRepository.getCurrentStreak(state.user.uid)
+                    streakJob = launch {
+                        userRepository.currentStreakState.collect { streakState ->
+                            handleStreakState(streakState, state.user.uid)
                         }
-                        StreakState.Broken -> {
-                            userRepository.resetUsersStreak(state.user.uid)
-                            _uiState.update { currentState ->
-                                currentState.copy(showBrokenStreakDialog = true)
-                            }
-                        }
-                        StreakState.NoStreak -> {}
-                        StreakState.ErrorGettingData -> {}
                     }
                 }
             }
         }
+    }
 
+    private suspend fun handleStreakState(streakState: StreakState, uid: String) {
+        Log.d("lollipop", "StreakState Updated: $streakState")
+        when (streakState) {
+            is StreakState.AtRisk -> {
+                _uiState.update {
+                    it.copy(currentStreakState = streakState)
+                }
+            }
+            StreakState.Broken -> {
+                userRepository.resetUsersStreak(uid)
+                _uiState.update {
+                    it.copy(
+                        showBrokenStreakDialog = true,
+                        currentStreakState = streakState
+                    )
+                }
+            }
+            is StreakState.Started,
+            is StreakState.Continued,
+            is StreakState.NoChange -> {
+                _uiState.update {
+                    it.copy(currentStreakState = streakState)
+                }
+            }
+            StreakState.NoStreak,
+            StreakState.ErrorGettingData -> {
+                // Optional UI updates
+            }
+        }
     }
 
     fun showAd(
@@ -102,10 +119,7 @@ class WatchScreenViewModel
 
             is AuthState.LoggedIn -> {
                 viewModelScope.launch {
-                    val result = userRepository.incrementAdWatchCount()
-                    _uiState.update { currentState ->
-                        currentState.copy(currentDailyStreak = result)
-                    }
+                    userRepository.incrementAdWatchCount()
                 }
             }
 
@@ -121,34 +135,3 @@ class WatchScreenViewModel
         }
     }
 }
-
-
-
-/*
-
- val state = authRepository.authState.value
-                if (state is AuthState.LoggedIn) {
-                    try {
-                        val streakState = userRepository.getCurrentStreakState(state.user.uid) // e.g., Firestore fetch
-                        when (streakState){
-                            is StreakState.NoChange -> {}
-                            is StreakState.Continued -> {}
-                            is StreakState.Started -> {}
-                            is StreakState.AtRisk -> {
-                                _uiState.update { currentState ->
-                                    currentState.copy(isStreakAtRisk = true)
-                                }
-                            }
-                            StreakState.Broken -> {
-                                userRepository.resetUsersStreak(state.user.uid)
-                                _uiState.update { currentState ->
-                                    currentState.copy(showBrokenStreakDialog = true)
-                                }
-                            }
-                            StreakState.NoStreak -> {}
-                            StreakState.ErrorGettingData -> {}
-                        }
-                    } catch (_: Exception){}
-                }
-            }
- */

@@ -14,7 +14,7 @@ interface UserRepository {
     fun getUserStatistics(uid: String): Flow<UserStatistics>
     suspend fun getUserStatisticsAnon(): Flow<UserStatistics>
     suspend fun getUserStatistics(userData: UserData): Flow<UserStatistics>
-    suspend fun incrementAdWatchCount(): StreakState
+    fun incrementAdWatchCount()
     suspend fun incrementAdWatchCountAnon()
     suspend fun saveUserSelectedCharity(charityId: String)
     suspend fun resetUsersStreak(uid: String)

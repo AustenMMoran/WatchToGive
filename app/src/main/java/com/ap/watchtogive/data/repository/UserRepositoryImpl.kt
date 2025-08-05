@@ -39,7 +39,7 @@ class UserRepositoryImpl @Inject constructor(
     private val _currentStreakState = MutableStateFlow<StreakState>(StreakState.NoStreak)
     override val currentStreakState: StateFlow<StreakState> = _currentStreakState
     private var listenerRegistration: ListenerRegistration? = null
-
+    private var lastCachedData: Pair<Timestamp?, Int?>? = null
 
     companion object {
         val TOTAL_ADS_WATCHED_KEY = intPreferencesKey("total_ads_watched")
@@ -47,7 +47,7 @@ class UserRepositoryImpl @Inject constructor(
 
     override fun getCurrentStreak(uid: String) {
         val docRef = firestore.collection(FirestorePaths.USERS).document(uid)
-        listenerRegistration?.remove()  // Remove any previous listener to avoid duplicates
+        listenerRegistration?.remove() // Remove old listener
 
         listenerRegistration = docRef.addSnapshotListener { snapshot, error ->
             if (error != null || snapshot == null || !snapshot.exists()) {
@@ -57,6 +57,11 @@ class UserRepositoryImpl @Inject constructor(
 
             val timestamp = snapshot.getTimestamp(FirestorePaths.USERS_LAST_WATCHED_TIMESTAMP)
             val streakCount = snapshot.getLong(FirestorePaths.USERS_CURRENT_STREAK)?.toInt()
+
+            // Check if streak data changed
+            val newCache = Pair(timestamp, streakCount)
+            if (newCache == lastCachedData) return@addSnapshotListener
+            lastCachedData = newCache
 
             if (timestamp == null || streakCount == null) {
                 _currentStreakState.value = StreakState.NoStreak
@@ -71,13 +76,45 @@ class UserRepositoryImpl @Inject constructor(
             val daysBetween = ChronoUnit.DAYS.between(lastDate, today).toInt()
 
             val newState = when {
-                daysBetween == 0 -> StreakState.NoChange(streakCount)
+                daysBetween == 0 && streakCount == 1 -> StreakState.Started(streakCount)
+                daysBetween == 0 && streakCount > 1 -> StreakState.Continued(streakCount)
                 daysBetween == 1 -> StreakState.AtRisk(streakCount)
                 daysBetween > 1 -> StreakState.Broken
                 else -> StreakState.ErrorGettingData
             }
 
             _currentStreakState.value = newState
+        }
+    }
+
+    override fun incrementAdWatchCount() {
+        val userId = firebaseAuth.currentUser!!.uid
+        val userDoc = firestore.collection(FirestorePaths.USERS).document(userId)
+
+        firestore.runTransaction { transaction ->
+            val snapshot = transaction.get(userDoc)
+
+            val currentStreak = snapshot.getLong(FirestorePaths.USERS_CURRENT_STREAK) ?: 0
+            val priorTimestamp = snapshot.getTimestamp(FirestorePaths.USERS_LAST_WATCHED_TIMESTAMP)
+
+            val today = LocalDate.now()
+            val lastDate = priorTimestamp?.toDate()?.toInstant()
+                ?.atZone(ZoneId.systemDefault())
+                ?.toLocalDate()
+
+            val updates = mutableMapOf<String, Any>(
+                FirestorePaths.USERS_TOTAL_ADS_WATCHED to FieldValue.increment(1)
+            )
+
+            // Only update streak & timestamp if it’s a new day
+            if (lastDate == null || lastDate.isBefore(today)) {
+                updates[FirestorePaths.USERS_CURRENT_STREAK] = currentStreak + 1
+                updates[FirestorePaths.USERS_LAST_WATCHED_TIMESTAMP] = Timestamp.now()
+            }
+
+            transaction.set(userDoc, updates, SetOptions.merge())
+        }.addOnFailureListener {
+            Log.e("Firestore", "Failed to increment ad watch", it)
         }
     }
 
@@ -120,44 +157,6 @@ class UserRepositoryImpl @Inject constructor(
 
         awaitClose { listener.remove() }
     }
-
-    override suspend fun incrementAdWatchCount(): StreakState {
-        val userId = firebaseAuth.currentUser!!.uid
-        val userDoc = firestore.collection(FirestorePaths.USERS).document(userId)
-
-        return firestore.runTransaction { transaction ->
-            val snapshot = transaction.get(userDoc)
-
-            val currentStreak = snapshot.getLong(FirestorePaths.USERS_CURRENT_STREAK) ?: 0
-            val lastWatched = snapshot.getTimestamp(FirestorePaths.USERS_LAST_WATCHED_TIMESTAMP)
-            val today = LocalDate.now()
-            val lastDate = lastWatched?.toDate()
-                ?.toInstant()
-                ?.atZone(ZoneId.systemDefault())
-                ?.toLocalDate()
-
-            val (updatedCount, streakResult) = when {
-                lastDate == null -> currentStreak + 1 to StreakState.Started(currentStreak.toInt() + 1)
-                lastDate.isBefore(today) -> currentStreak + 1 to StreakState.Continued(currentStreak.toInt() + 1)
-                lastDate.isEqual(today) -> currentStreak to StreakState.NoChange(currentStreak.toInt())
-                else -> currentStreak to StreakState.NoChange(currentStreak.toInt())
-            }
-
-            val updates = mapOf(
-                FirestorePaths.USERS_CURRENT_STREAK to updatedCount,
-                FirestorePaths.USERS_LAST_WATCHED_TIMESTAMP to Timestamp.now(),
-                FirestorePaths.USERS_TOTAL_ADS_WATCHED to FieldValue.increment(1)
-            )
-
-            transaction.set(userDoc, updates, SetOptions.merge())
-
-            // Return streak result from the transaction
-            streakResult
-        }.addOnFailureListener {
-            Log.e("Firestore", "Failed to increment ad watch", it)
-        }.await()
-    }
-
 
     override suspend fun incrementAdWatchCountAnon() {
         Log.d("lollipop", "incrementAdWatchCountAnon: ")

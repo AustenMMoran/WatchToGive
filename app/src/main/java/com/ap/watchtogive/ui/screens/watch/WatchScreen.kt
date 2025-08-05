@@ -57,7 +57,7 @@ fun WatchScreen(
         // Todo turn into a screen animation for updating streak, actual streak info in stat screen
         Text(
             modifier = Modifier,
-            text = when (val streak = uiState.currentDailyStreak) {
+            text = when (val streak = uiState.currentStreakState) {
                 is StreakState.Started -> "Streak started! Count: ${streak.streakCount}"
                 is StreakState.Continued -> "Streak continued! Count: ${streak.streakCount}"
                 is StreakState.NoChange -> "No change. Count: ${streak.streakCount}"

@@ -12,10 +12,9 @@ import com.ap.watchtogive.model.StreakState
 data class WatchScreenState(
     val selectedCharityId: String? = null,
     val adsWatchedToday: Int = 0,
-    val currentDailyStreak: StreakState? = null,
     val adLoadState: AdState = AdState.Loading,
 
     //Streak States
+    val currentStreakState: StreakState? = null,
     val showBrokenStreakDialog: Boolean = false,
-    val isStreakAtRisk: Boolean = false
 )
