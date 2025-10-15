@@ -1,15 +1,15 @@
 package com.ap.watchtogive.data.repository
 
-import com.ap.watchtogive.model.AuthProvider
+import androidx.credentials.Credential
 import com.ap.watchtogive.model.AuthState
-import com.google.firebase.auth.AuthCredential
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.flow.StateFlow
 
 interface AuthRepository {
     val authState: StateFlow<AuthState>
     suspend fun loginAnon()
     suspend fun logout()
-    suspend fun signInOrLinkWithGoogleIdToken(idToken: String)
+    suspend fun signInOrLinkWithCredential(credential: Credential)
     suspend fun signOut()
 
 }

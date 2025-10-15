@@ -1,6 +1,5 @@
 package com.ap.watchtogive
 
-import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
@@ -9,7 +8,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.IntentSenderRequest.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -18,6 +16,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -28,9 +28,10 @@ import com.ap.watchtogive.ui.navigation.BottomNavigation
 import com.ap.watchtogive.ui.navigation.NavHost
 import com.ap.watchtogive.ui.navigation.Screen
 import com.ap.watchtogive.ui.theme.WatchToGiveTheme
-import com.google.android.gms.auth.api.identity.BeginSignInRequest
-import com.google.android.gms.auth.api.identity.Identity
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity() : ComponentActivity() {
@@ -46,40 +47,38 @@ class MainActivity() : ComponentActivity() {
             val mainViewModel: MainViewModel = hiltViewModel()
             val mainUiState by mainViewModel.mainUiState.collectAsState()
 
-            val oneTapClient = Identity.getSignInClient(this)
-            val signInRequest = BeginSignInRequest.builder()
-                .setGoogleIdTokenRequestOptions(
-                    BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
-                        .setSupported(true)
-                        .setServerClientId(getString(R.string.default_web_client_id))
-                        .setFilterByAuthorizedAccounts(false)
-                        .build()
-                )
+            val googleIdOption = GetGoogleIdOption.Builder()
+                .setServerClientId(getString(R.string.default_web_client_id))
+                .setFilterByAuthorizedAccounts(false)
                 .build()
 
-            val googleCredentialLauncher = rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.StartIntentSenderForResult()
-            ) { result ->
-                if (result.resultCode == Activity.RESULT_OK) {
-                    val credential = oneTapClient.getSignInCredentialFromIntent(result.data)
-                    val idToken = credential.googleIdToken
-                    if (idToken != null) {
-                        // Pass ID token to ViewModel to authenticate with Firebase or backend
-                        mainViewModel.loginWithToken(idToken)
-                    } else {
-                        Log.e("lollipop", "No ID token in credential")
-                    }
-                } else {
-                    Log.e("lollipop", "One Tap Sign-in failed or cancelled")
-                    mainViewModel.setUiState(MainUiState.Error(message = result.resultCode.toString()))
+            // Build the Credential Manager request
+            val request = GetCredentialRequest.Builder()
+                .addCredentialOption(googleIdOption)
+                .build()
 
-                }
-            }
+            val credentialManager = CredentialManager.create(this)
+            val coroutineScope = rememberCoroutineScope()
 
-            val googleCreateAccountLauncher = rememberLauncherForActivityResult(
+            val addAccountLauncher = rememberLauncherForActivityResult(
                 contract = ActivityResultContracts.StartActivityForResult()
             ) { result ->
-                mainViewModel.setUiState(MainUiState.NoLoginDetails)
+
+                Log.d("test-auth", "create google account [result]: ${result.resultCode}")
+                // This callback triggers when the user returns from the "Add Account" screen
+                coroutineScope.launch {
+                    try {
+                        val response = credentialManager.getCredential(
+                            context = this@MainActivity,
+                            request = request
+                        )
+                        mainViewModel.signInWithCredential(response.credential)
+                    } catch (e: Exception) {
+                        // Still no credentials → show fallback UI
+                        Log.d("test-auth", "onAccountLauncher: STILL No credentials - return to default")
+                        mainViewModel.setUiState(MainUiState.NoLoginDetails)
+                    }
+                }
             }
 
             LaunchedEffect(mainUiState) {
@@ -93,11 +92,20 @@ class MainActivity() : ComponentActivity() {
 
             WatchToGiveTheme {
                 when (mainUiState) {
-                    is MainUiState.AuthLoading ->{
+                    is MainUiState.GoogleSignIn -> {
+                        val intent = Intent(Settings.ACTION_ADD_ACCOUNT).apply {
+                            putExtra(Settings.EXTRA_ACCOUNT_TYPES, arrayOf("com.google"))
+                        }
+                        addAccountLauncher.launch(intent)
+
+                        mainViewModel.setUiState(MainUiState.AuthLoading)
+                    }
+                    is MainUiState.AuthLoading -> {
                         SplashScreen()
                     }
 
                     is MainUiState.NoLoginDetails -> {
+
                         ChooseAccountType(
                             onContinueAsGuest = {
                                 mainViewModel.setUiState(MainUiState.AuthLoading)
@@ -105,31 +113,32 @@ class MainActivity() : ComponentActivity() {
                             },
                             onGoogleSignIn = {
                                 mainViewModel.setUiState(MainUiState.AuthLoading)
-                                oneTapClient.beginSignIn(signInRequest)
-                                    .addOnSuccessListener { result ->
-                                        try {
-                                            googleCredentialLauncher.launch(
-                                                Builder(result.pendingIntent.intentSender).build()
+                                coroutineScope.launch {
+                                    try {
+                                        val response = credentialManager.getCredential(
+                                            context = this@MainActivity,
+                                            request = request
+                                        )
+
+                                        mainViewModel.signInWithCredential(response.credential)
+
+                                    } catch (e: Exception) {
+                                        Log.e("test-auth", "sign in: [catch] ${e.message}")
+
+                                        if (e.message?.contains("No credentials available") == true) {
+                                            // FALLBACK: show sign-in chooser UI
+                                            Log.d(
+                                                "test-auth",
+                                                "No credentials, fallback to Google sign-in UI"
                                             )
-                                        } catch (e: Exception) {
-                                            Log.e("MainActivity", "Couldn't launch One Tap UI: ${e.localizedMessage}")
-                                        }
-                                    }
-                                    .addOnFailureListener { e ->
-                                        val message = e.localizedMessage ?: ""
-                                        Log.e("MainActivity", "One Tap beginSignIn failed: $message")
-                                        if (message.contains("Cannot find a matching credential", ignoreCase = true)) {
-                                            val intent = Intent(Settings.ACTION_ADD_ACCOUNT).apply {
-                                                putExtra(Settings.EXTRA_ACCOUNT_TYPES, arrayOf("com.google"))
-                                            }
-
-                                            googleCreateAccountLauncher.launch(intent)
+                                            mainViewModel.setUiState(MainUiState.GoogleSignIn)
                                         } else {
-                                            // Any other error — show a proper error screen
-                                            mainViewModel.setUiState(MainUiState.Error(message))
+                                            mainViewModel.setUiState(
+                                                MainUiState.Error(e.localizedMessage ?: "Google sign-in failed")
+                                            )
                                         }
                                     }
-
+                                }
                             }
                         )
                     }
@@ -178,3 +187,44 @@ class MainActivity() : ComponentActivity() {
         }
     }
 }
+
+
+/*
+
+            val oneTapClient = Identity.getSignInClient(this)
+            val signInRequest = BeginSignInRequest.builder()
+                .setGoogleIdTokenRequestOptions(
+                    BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
+                        .setSupported(true)
+                        .setServerClientId(getString(R.string.default_web_client_id))
+                        .setFilterByAuthorizedAccounts(false)
+                        .build()
+                )
+                .build()
+
+            val googleCredentialLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.StartIntentSenderForResult()
+            ) { result ->
+                if (result.resultCode == Activity.RESULT_OK) {
+                    val credential = oneTapClient.getSignInCredentialFromIntent(result.data)
+                    val idToken = credential.googleIdToken
+                    if (idToken != null) {
+                        // Pass ID token to ViewModel to authenticate with Firebase or backend
+                        mainViewModel.loginWithToken(idToken)
+                    } else {
+                        Log.e("lollipop", "No ID token in credential")
+                    }
+                } else {
+                    Log.e("lollipop", "One Tap Sign-in failed or cancelled")
+                    mainViewModel.setUiState(MainUiState.Error(message = result.resultCode.toString()))
+
+                }
+            }
+
+            val googleCreateAccountLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.StartActivityForResult()
+            ) { result ->
+                mainViewModel.setUiState(MainUiState.NoLoginDetails)
+            }
+
+ */

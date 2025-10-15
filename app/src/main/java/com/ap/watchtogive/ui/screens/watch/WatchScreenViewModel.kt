@@ -21,13 +21,11 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class WatchScreenViewModel
-    @Inject
-    constructor(
-        private val adsRepository: AdsRepository,
-        private val authRepository: AuthRepository,
-        private val userRepository: UserRepository
-    ) : ViewModel() {
+class WatchScreenViewModel @Inject constructor(
+    private val adsRepository: AdsRepository,
+    private val authRepository: AuthRepository,
+    private val userRepository: UserRepository
+) : ViewModel() {
     private val _uiState = MutableStateFlow(WatchScreenState())
     val uiState: StateFlow<WatchScreenState> = _uiState.asStateFlow()
     private var streakJob: Job? = null
@@ -64,11 +62,6 @@ class WatchScreenViewModel
     private suspend fun handleStreakState(streakState: StreakState, uid: String) {
         Log.d("lollipop", "StreakState Updated: $streakState")
         when (streakState) {
-            is StreakState.AtRisk -> {
-                _uiState.update {
-                    it.copy(currentStreakState = streakState)
-                }
-            }
             StreakState.Broken -> {
                 userRepository.resetUsersStreak(uid)
                 _uiState.update {
@@ -78,9 +71,11 @@ class WatchScreenViewModel
                     )
                 }
             }
+            is StreakState.AtRisk,
             is StreakState.Started,
             is StreakState.Continued,
             is StreakState.NoChange -> {
+                // Todo: Consider UI flairs, celebration
                 _uiState.update {
                     it.copy(currentStreakState = streakState)
                 }

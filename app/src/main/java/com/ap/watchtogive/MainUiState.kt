@@ -5,6 +5,7 @@ sealed class MainUiState {
     object NoLoginDetails : MainUiState()
     object ReadyAsGuest : MainUiState()
     object Ready : MainUiState()
+    object GoogleSignIn : MainUiState()
 
     data class Error(val message: String) : MainUiState()
 

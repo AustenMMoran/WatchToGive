@@ -1,14 +1,16 @@
 package com.ap.watchtogive.data.repository
 
 import android.util.Log
+import androidx.credentials.Credential
+import androidx.credentials.CustomCredential
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
-import com.ap.watchtogive.data.constants.FirestorePaths
 import com.ap.watchtogive.model.AuthState
 import com.ap.watchtogive.model.UserData
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.AuthCredential
+import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseUser
@@ -18,9 +20,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
 
 class AuthRepositoryImpl @Inject constructor(
     private val firebaseAuth: FirebaseAuth,
@@ -70,18 +69,23 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun signInOrLinkWithGoogleIdToken(idToken: String) {
-        val credential = GoogleAuthProvider.getCredential(idToken, null)
-        val currentUser = firebaseAuth.currentUser
-
+    override suspend fun signInOrLinkWithCredential(credential: Credential) {
         try {
+            val firebaseCredential = credential.toFirebaseAuthCredential()
+                ?: throw IllegalArgumentException("Unsupported credential type")
+
+            val currentUser = firebaseAuth.currentUser
             if (currentUser != null && currentUser.isAnonymous) {
-                currentUser.linkWithCredential(credential).await()
+                try {
+                    currentUser.linkWithCredential(firebaseCredential).await()
+                } catch (e: FirebaseAuthUserCollisionException) {
+                    firebaseAuth.signInWithCredential(firebaseCredential).await()
+                }
             } else {
-                firebaseAuth.signInWithCredential(credential).await()
+                firebaseAuth.signInWithCredential(firebaseCredential).await()
             }
-        } catch (e: FirebaseAuthUserCollisionException) {
-            firebaseAuth.signInWithCredential(credential).await()
+        } catch (e: Exception) {
+            _authState.value = AuthState.Error("Sign-in failed: ${e.localizedMessage}")
         }
     }
 
@@ -112,4 +116,16 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
+    private fun Credential.toFirebaseAuthCredential(): AuthCredential? {
+        return when (this) {
+            is CustomCredential -> when (type) {
+                GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL -> {
+                    val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(data)
+                    GoogleAuthProvider.getCredential(googleIdTokenCredential.idToken, null)
+                }
+                else -> null
+            }
+            else -> null
+        }
+    }
 }

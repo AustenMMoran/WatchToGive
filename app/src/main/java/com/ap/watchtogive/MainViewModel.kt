@@ -1,6 +1,7 @@
 package com.ap.watchtogive
 
 import android.util.Log
+import androidx.credentials.Credential
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ap.watchtogive.MainUiState.*
@@ -19,7 +20,7 @@ import javax.inject.Inject
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val authRepository: AuthRepository
-): ViewModel(){
+): ViewModel() {
 
     private val _mainUiState = MutableStateFlow<MainUiState>(MainUiState.AuthLoading)
     val mainUiState: StateFlow<MainUiState> = _mainUiState
@@ -47,13 +48,13 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun loginWithToken(idToken: String) {
-        viewModelScope.launch {
-           authRepository.signInOrLinkWithGoogleIdToken(idToken)
-        }
-    }
-
     fun setUiState(state: MainUiState){
         _mainUiState.value = state
+    }
+
+    fun signInWithCredential(credential: Credential) {
+        viewModelScope.launch {
+            authRepository.signInOrLinkWithCredential(credential)
+        }
     }
 }
